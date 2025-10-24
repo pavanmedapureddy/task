@@ -1,25 +1,41 @@
 pipeline {
-    agent any  // Run on any available Jenkins agent
+    agent any
+
+    environment {
+        DEPLOY_USER = 'ubuntu' // server SSH username
+        DEPLOY_HOST = 'YOUR_SERVER_IP' // replace with your server IP
+        DEPLOY_PATH = '/var/www/html' // path where HTML will be hosted
+        SSH_KEY = '/var/lib/jenkins/.ssh/id_rsa' // Jenkins private key for SSH
+    }
 
     stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Build') {
             steps {
                 echo 'Building the project...'
-                // Example: sh 'mvn clean package' for a Java project
+                // Add build steps if needed (e.g., npm build)
             }
         }
 
         stage('Test') {
             steps {
                 echo 'Running tests...'
-                // Example: sh 'mvn test'
+                // Add test steps if needed
             }
         }
 
         stage('Deploy') {
             steps {
-                echo 'Deploying the project...'
-                // Example: sh 'scp target/app.war user@server:/path/'
+                echo 'Deploying project to server...'
+                sh """
+                scp -i ${SSH_KEY} -r * ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}
+                ssh -i ${SSH_KEY} ${DEPLOY_USER}@${DEPLOY_HOST} 'sudo systemctl restart nginx'
+                """
             }
         }
     }
@@ -29,7 +45,7 @@ pipeline {
             echo 'This will always run after all stages.'
         }
         success {
-            echo 'Pipeline succeeded!'
+            echo 'Pipeline succeeded! Your site should now be live.'
         }
         failure {
             echo 'Pipeline failed!'
